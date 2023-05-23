@@ -26,14 +26,9 @@ module.exports.INSERT_TICKET = async (req, res) => {
 
   module.exports.BUY_TICKET = async (req, res) => {
 try {
-  console.log (req.params.id);
 
   const user = await userModel.findOne({id: req.body.userId });
-  console.log (user.money_balance);
-
   const ticket = await ticketModel.findOne({id: req.body.ticketId });
-  console.log (ticket.ticket_price);
-
 
 if (user.money_balance < ticket.ticket_price) {
  
@@ -42,6 +37,11 @@ if (user.money_balance < ticket.ticket_price) {
   userModel.updateOne(
     { id: req.body.userId },
     { $push: { bought_tickets: ticket.id } }
+  ).exec();
+
+  userModel.updateOne(
+    { id: req.body.userId },
+    { money_balance: user.money_balance - ticket.ticket_price }
   ).exec();
 
   res.status(200).json({ response: "You bought a ticket"});

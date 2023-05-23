@@ -17,8 +17,8 @@ router.post("/logIn", LOGIN);
 router.post("/newJwtToken", NEW_JWT_TOKEN);
 router.get("/allUsers", authMiddleware, GET_ALL_USERS);
 router.get("/user/:id", authMiddleware, GET_USER_BY_ID);
-// router.get("/allUsersWithTickets", authMiddleware, GET_ALL_USERS_WITH_TICKETS);
-// router.get("/allUserWithTickets/:id", authMiddleware, GET_USER_WITH_TICKETS_BY_ID);
+router.get("/allUsersWithTickets", authMiddleware, GET_ALL_USERS_WITH_TICKETS);
+router.get("/userWithTickets/:id", authMiddleware, GET_USER_WITH_TICKETS_BY_ID);
 
 module.exports = router;
 

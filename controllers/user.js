@@ -1,5 +1,5 @@
 const uniqid = require("uniqid");
-const UserModel = require("../models/user");
+const userModel = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -7,7 +7,6 @@ module.exports.INSERT_USER = async (req, res) => {
     try {
 if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
     bcrypt.genSalt(10, (err, salt) => {
-        console.log(req.body.name.charAt(0).toUpperCase() + req.body.name.slice(1));
         bcrypt.hash(req.body.password, salt, async (err, hash) => {
           const user = new UserModel({
             id: uniqid(),
@@ -31,10 +30,9 @@ if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
     }
   };
 
-  
   module.exports.LOGIN = async (req, res) => {
     try {
-      const user = await UserModel.findOne({ email: req.body.email });
+      const user = await userModel.findOne({ email: req.body.email });
   
       if (!user) {
         return res.status(404).json({ response: "Bad data" });
@@ -105,8 +103,6 @@ try {
           }
         );
 
-        
-
         return res.status(200).json({ token, refreshToken });
       }
     });
@@ -120,7 +116,7 @@ try {
 
 module.exports.GET_ALL_USERS = async (req, res) => {
   try {
-    const users = await UserModel.find();
+    const users = await userModel.find();
     
     users.sort((a, b) => {
     const nameA = a.name.toLowerCase();
@@ -144,10 +140,51 @@ module.exports.GET_ALL_USERS = async (req, res) => {
 
 module.exports.GET_USER_BY_ID = async (req, res) => {
   try {
-    const user = await UserModel.findOne({ id: req.params.id });
+    const user = await userModel.findOne({ id: req.params.id });
     res.status(200).json({ user: user });
   } catch (err) {
     console.log("ERR", err);
     res.status(404).json({ response: "User was not found" });
   }
 };
+
+module.exports.GET_ALL_USERS_WITH_TICKETS = async (req, res) => {
+  try {
+    const aggregatedUserData = await userModel.aggregate([
+      {
+        $lookup: {
+          from: "tickets",
+          localField: "bought_tickets",
+          foreignField: "id",
+          as: "user_tickets",
+        },
+      }
+    ]).exec();
+    res.status(200).json({ users: aggregatedUserData });
+  } catch (err) {
+    console.log("ERR", err);
+    res.status(404).json({ response: "User was not found" });
+  }
+};
+
+module.exports.GET_USER_WITH_TICKETS_BY_ID = async (req, res) => {
+  try {
+    const aggregatedUserData = await userModel.aggregate([
+      {
+        $lookup: {
+          from: "tickets",
+          localField: "bought_tickets",
+          foreignField: "id",
+          as: "user_tickets",
+        },
+      },
+      { $match: { id: req.params.id} },
+    ]).exec();
+   
+    res.status(200).json({ user: aggregatedUserData });
+  } catch (err) {
+    console.log("ERR", err);
+    res.status(404).json({ response: "User was not found" });
+  }
+};
+
