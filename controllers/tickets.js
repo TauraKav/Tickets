@@ -41,7 +41,7 @@ if (user.money_balance < ticket.ticket_price) {
 
   userModel.updateOne(
     { id: req.body.userId },
-    { money_balance: user.money_balance - ticket.ticket_price }
+    { $set: {money_balance: user.money_balance - ticket.ticket_price} }
   ).exec();
 
   res.status(200).json({ response: "You bought a ticket"});
