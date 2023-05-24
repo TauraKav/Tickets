@@ -2,13 +2,14 @@ const uniqid = require("uniqid");
 const userModel = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const user = require("../models/user");
 
 module.exports.INSERT_USER = async (req, res) => {
     try {
-if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
+if ( req.body.email.includes('@') && /\d/.test(req.body.password) && req.body.password.length >= 6 ) {
     bcrypt.genSalt(10, (err, salt) => {
         bcrypt.hash(req.body.password, salt, async (err, hash) => {
-          const user = new UserModel({
+          const user = new userModel({
             id: uniqid(),
             name: req.body.name.charAt(0).toUpperCase() + req.body.name.slice(1),
             email: req.body.email,
@@ -17,11 +18,35 @@ if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
             money_balance: req.body.money_balance
           });
   
+          const token = jwt.sign(
+            {
+              email: user.email,
+              userId: user.id,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "2h" },
+            {
+              algorithm: "RS256",
+            }
+          );
+
+          const refreshToken = jwt.sign(
+            {
+              email: user.email,
+              userId: user.id,
+            },
+            process.env.JWT_SECRET_REFRESH,
+            { expiresIn: "1d" },
+            {
+              algorithm: "RS256",
+            }
+          );
           await user.save();
+      
+          return res.status(200).json({ response: "User was saved successfully", token, refreshToken });
         });
       });
-      
-      return res.status(200).json({ response: "User was saved successfully"});
+    
 
 } else {res.status(400).json({ response: "bad validation" })}
 
@@ -58,7 +83,7 @@ if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
               userId: user.id,
             },
             process.env.JWT_SECRET_REFRESH,
-            { expiresIn: "24h" },
+            { expiresIn: "1d" },
             {
               algorithm: "RS256",
             }
@@ -77,20 +102,12 @@ if ( req.body.email.includes('@') && /\d/.test(req.body.password) ) {
 
   module.exports.NEW_JWT_TOKEN =  async (req, res) => {
 try {
-  const refreshToken =  req.headers.jwtRefreshToken;
-  console.log("as cia");
-
-  console.log(refreshToken );
-
-  if (req.headers.jwtRefreshToken) {
-   jwt.verify(req.headers.jwtRefreshToken, process.env.JWT_SECRET_REFRESH, (err, decoded) => {
-      if (err) {
-      console.log("o gal cia");
-
+  const refreshToken = req.headers.jwt_refresh_token;
+  if (refreshToken) {
+   jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH, (err, decoded) => {
+    if (err) {
         return res.status(400).json({ response: "You have to login again" });
       } else {
-        console.log("o gal ir cia");
-
         const token = jwt.sign(
           {
             email: decoded.email,
@@ -107,7 +124,7 @@ try {
       }
     });
 
-  }
+  } else return res.status(400).json({ response: "no refresh token given" });
 } catch (err) {
   console.log("ERR", err);
   res.status(500).json({ response: "ERROR, please try later" });
